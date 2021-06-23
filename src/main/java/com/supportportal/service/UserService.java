@@ -12,6 +12,9 @@ public interface UserService {
 
     User register(String nric, String name, String salutation, String userInitial, String email, String displayName, String appt, Set<Role> roleSet) throws  UsernameExistException, EmailExistException;
     User findUserByNric(String nric);
-    List<User> getUsers();
 
+    List<User> getUsers();
+    User updateUser(String nric, String name, String salutation, String userInitial, String email, String displayName, String appt, boolean locked, Set<Role> roleSet);
+
+    void deleteUser(String nric);
 }

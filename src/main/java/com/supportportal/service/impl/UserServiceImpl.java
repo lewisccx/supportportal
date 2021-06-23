@@ -6,6 +6,7 @@ import com.supportportal.domain.UserPrincipal;
 import com.supportportal.exception.domain.EmailExistException;
 import com.supportportal.exception.domain.UsernameExistException;
 import com.supportportal.repository.UserRepository;
+import com.supportportal.service.LoginAttemptService;
 import com.supportportal.service.UserService;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -23,6 +24,7 @@ import javax.transaction.Transactional;
 import java.util.Date;
 import java.util.List;
 import java.util.Set;
+import java.util.concurrent.ExecutionException;
 
 import static com.supportportal.constant.UserImplConstant.*;
 
@@ -30,14 +32,16 @@ import static com.supportportal.constant.UserImplConstant.*;
 @Transactional
 @Qualifier("userDetailsService")
 public class UserServiceImpl implements UserService, UserDetailsService {
-    private Logger LOGGER = LoggerFactory.getLogger(getClass());
-    private UserRepository userRepository;
-    private BCryptPasswordEncoder passwordEncoder;
+    private final Logger LOGGER = LoggerFactory.getLogger(getClass());
+    private final UserRepository userRepository;
+    private final BCryptPasswordEncoder passwordEncoder;
 
+    private LoginAttemptService loginAttemptService;
     @Autowired
-    public UserServiceImpl(UserRepository userRepository, BCryptPasswordEncoder passwordEncoder) {
+    public UserServiceImpl(UserRepository userRepository, BCryptPasswordEncoder passwordEncoder,LoginAttemptService loginAttemptService) {
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
+        this.loginAttemptService = loginAttemptService;
     }
 
     @Override
@@ -47,12 +51,25 @@ public class UserServiceImpl implements UserService, UserDetailsService {
             LOGGER.error(NO_USER_FOUND_BY_USERNAME + nric);
             throw new UsernameNotFoundException(NO_USER_FOUND_BY_USERNAME + nric);
         } else {
+            validateLoginAttempt(user);
             user.setDteLastLogin(new Date());
             userRepository.save(user);
             UserPrincipal userPrincipal = new UserPrincipal(user);
             LOGGER.info(FOUND_USER_BY_USERNAME + nric);
             return userPrincipal;
         }
+    }
+
+    private void validateLoginAttempt(User user)  {
+       if(!user.getLocked()){
+        if(loginAttemptService.hasExceededMaxAttempts(user.getNric())){
+            user.setLocked(true);
+       }else {
+            user.setLocked(false);
+        }
+       }else{
+           loginAttemptService.evictUserFromLoginAttemptCache(user.getNric());
+       }
     }
 
     @Override
@@ -71,6 +88,7 @@ public class UserServiceImpl implements UserService, UserDetailsService {
         user.setDisplayName(displayName);
         user.setAppt(appt);
         user.setRoleSet(roleSet);
+        user.setLocked(false);
         userRepository.save(user);
         return user;
     }
@@ -85,14 +103,38 @@ public class UserServiceImpl implements UserService, UserDetailsService {
         return userRepository.findAll();
     }
 
+    @Override
+    public User updateUser(String nric, String name, String salutation, String userInitial, String email, String displayName, String appt, boolean locked, Set<Role> roleSet) {
+
+            User user = findUserByNric(nric);
+            user.setName(name);
+            user.setSalutation(salutation);
+            user.setUserInitial(userInitial);
+            user.setEmail(email);
+            user.setDisplayName(displayName);
+            user.setAppt(appt);
+            user.setRoleSet(roleSet);
+            user.setLocked(locked);
+            userRepository.save(user);
+            return user;
+    }
+
+    @Override
+    public void deleteUser(String nric) throws UsernameNotFoundException {
+       User user = userRepository.findUserByNric(nric);
+       if(user != null){
+           user.removeAllRole();
+           userRepository.deleteByNric(nric);
+       }
+
+    }
+
 
     private String encodeStaffId(String staffId) {
         return passwordEncoder.encode(staffId);
     }
 
     private String generateStaffId() {
-
-
         return RandomStringUtils.randomNumeric(10);
     }
 

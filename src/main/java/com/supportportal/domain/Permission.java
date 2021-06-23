@@ -25,11 +25,11 @@ public class Permission
     @Column(nullable = false, unique = true, length = 100)
     private String url;
     @Column(nullable = false)
-    private Boolean isReadOnly;
+    private String action;
 
-    public Permission(String module, String url, Boolean isReadOnly) {
+    public Permission(String module, String url, String action) {
         this.module = module;
         this.url = url;
-        this.isReadOnly = isReadOnly;
+        this.action = action;
     }
 }

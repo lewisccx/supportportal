@@ -8,6 +8,8 @@ import org.springframework.util.StringUtils;
 
 import javax.persistence.*;
 import java.io.Serializable;
+import java.time.LocalDate;
+import java.time.ZoneId;
 import java.util.Date;
 import java.util.HashSet;
 import java.util.Set;
@@ -57,7 +59,8 @@ public class User implements Serializable {
     @Column(nullable = false, length = 30)
     private String appt;
 
-
+    @Column(nullable = false)
+    private Boolean locked = false;
 
     //many to many rel with Role
     @ManyToMany
@@ -76,9 +79,10 @@ public class User implements Serializable {
         this.roleSet.remove(role);
     }
 
-    public User(String nric,String staffId, String name, String salutation, String userInitial, String email, String displayName, String appt, Set<Role> roleSet) {
+    public void removeAllRole(){this.roleSet.clear();}
+
+    public User(String nric, String name, String salutation, String userInitial, String email, String displayName, String appt, Set<Role> roleSet) {
         this.nric = nric.toUpperCase();
-        this.staffId = staffId;
         this.name = (name);
         this.salutation = StringUtils.capitalize(salutation);
         this.userInitial = userInitial.toUpperCase();
@@ -86,5 +90,6 @@ public class User implements Serializable {
         this.displayName = (displayName);
         this.appt = appt.toUpperCase();
         this.roleSet = roleSet;
+        this.locked = false;
     }
 }

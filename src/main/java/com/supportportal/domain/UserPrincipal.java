@@ -4,10 +4,9 @@ import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.List;
-import java.util.Set;
+import java.time.LocalDate;
+import java.time.ZoneId;
+import java.util.*;
 import java.util.stream.Collectors;
 
 import static java.util.Arrays.stream;
@@ -24,9 +23,16 @@ public class UserPrincipal implements UserDetails {
         Set<Role> roles = user.getRoleSet();
         List<SimpleGrantedAuthority> authorities = new ArrayList<>();
         for (Role role : roles) {
-            authorities.add(new SimpleGrantedAuthority(role.getRole()));
+            // do here
+            Set<Permission> permissions = role.getPermissionSet();
+            for (Permission permission : permissions){
+                authorities.add(new SimpleGrantedAuthority(role.getRole()+":"+ permission.getModule()+":"+permission.getAction()));
+            }
         }
-
+        /*
+        * TODO
+        *  Should design more complex access combination
+        * */
         return authorities;    }
 
     @Override
@@ -46,7 +52,7 @@ public class UserPrincipal implements UserDetails {
 
     @Override
     public boolean isAccountNonLocked() {
-        return true;
+        return !this.user.getLocked();
     }
 
     @Override
@@ -56,6 +62,14 @@ public class UserPrincipal implements UserDetails {
 
     @Override
     public boolean isEnabled() {
+
+        ZoneId defaultZoneId = ZoneId.of("Asia/Singapore");
+        LocalDate currentDate = LocalDate.now();
+        LocalDate currentDateMinus3Months = currentDate.minusDays(90);
+        Date date = Date.from(currentDateMinus3Months.atStartOfDay(defaultZoneId).toInstant());
+        if (user.getDteLastLogin() != null) {
+            return  !user.getDteLastLogin().before(date);
+        }
         return true;
     }
 }
