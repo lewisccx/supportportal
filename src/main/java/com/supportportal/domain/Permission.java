@@ -1,11 +1,13 @@
 package com.supportportal.domain;
 
-import lombok.AllArgsConstructor;
-import lombok.Data;
-import lombok.NoArgsConstructor;
-import lombok.ToString;
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import lombok.*;
+import org.hibernate.annotations.Fetch;
+import org.hibernate.annotations.FetchMode;
 
 import javax.persistence.*;
+import java.util.HashSet;
+import java.util.Set;
 
 @Data
 @AllArgsConstructor
@@ -26,7 +28,6 @@ public class Permission
     private String url;
     @Column(nullable = false)
     private String action;
-
     public Permission(String module, String url, String action) {
         this.module = module;
         this.url = url;

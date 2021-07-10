@@ -14,7 +14,10 @@ public interface UserService {
     User findUserByNric(String nric);
 
     List<User> getUsers();
-    User updateUser(String nric, String name, String salutation, String userInitial, String email, String displayName, String appt, boolean locked, Set<Role> roleSet);
+    User updateUser(String nric, String name, String salutation, String userInitial, String email, String displayName, String appt, String[] roleSet);
 
     void deleteUser(String nric);
+
+    User submitNewUserAccessControl(String nric, String name, String salutation, String userInitial, String email, String displayName, String appt, String[] roleSet, String submittedBy);
+
 }

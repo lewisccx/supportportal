@@ -74,49 +74,55 @@ public class UserResource extends ExceptionHandling {
     private void authenticate(String username, String password) {
         authenticationManager.authenticate(new UsernamePasswordAuthenticationToken(username, password));
     }
+//    @PostMapping("/update")
+//    public ResponseEntity<User> updateUser(
+//
+//            @RequestBody User user
+//    )   {
+//        User updatedUser = userService.updateUser(user.getNric(),user.getName(),user.getSalutation(),user.getUserInitial(),user.getEmail(),user.getDisplayName(), user.getAppt(), user.getLocked(),user.getRoleSet());
+//        return new ResponseEntity<>(updatedUser, OK);
+//    }
+
     @PostMapping("/update")
     public ResponseEntity<User> updateUser(
-
-            @RequestBody User user
-    )   {
-        User updatedUser = userService.updateUser(user.getNric(),user.getName(),user.getSalutation(),user.getUserInitial(),user.getEmail(),user.getDisplayName(), user.getAppt(), user.getLocked(),user.getRoleSet());
+            @RequestParam("nric") String nric,
+            @RequestParam("name") String name,
+            @RequestParam("salutation") String salutation,
+            @RequestParam("userInitial") String userInitial,
+            @RequestParam("email") String email,
+            @RequestParam("displayName") String displayName,
+            @RequestParam("appt") String appt,
+            @RequestParam("roles") String[] roles
+    ){
+        User updatedUser = userService.updateUser(nric,name,salutation,
+                userInitial,email,displayName, appt, roles);
         return new ResponseEntity<>(updatedUser, OK);
     }
+
     @GetMapping("/find")
     public ResponseEntity<User> getUser(@RequestParam("nric") String nric) {
-
         User user = userService.findUserByNric(nric);
         return new ResponseEntity<>(user, OK);
     }
 
     @GetMapping("/list")
     public ResponseEntity<List<User>> getAllUsers() {
-
         List<User> users = userService.getUsers();
         return new ResponseEntity<>(users, OK);
-
     }
-    @DeleteMapping("/delete")
+    @DeleteMapping("/delete/{nric}")
     @PreAuthorize("hasAnyAuthority('ADMIN:user:update')")
-    public ResponseEntity<HttpResponse> deleteUser( @RequestHeader("authorization") String authorization , @RequestBody User user) {
-
-        String formattedAuth = authorization.replace(TOKEN_PREFIX,"" );
-
+    public ResponseEntity<HttpResponse> deleteUser( @RequestHeader("authorization") String authorization , @PathVariable("nric") String nric) {
+        String formattedAuth = authorization.replace(TOKEN_PREFIX,"");
         String LogonNric = jwtTokenProvider.getSubject(formattedAuth);
-       LOGGER.info(LogonNric);
+        LOGGER.info(LogonNric);
 
-       if(!user.getNric().equals(LogonNric)){
-            userService.deleteUser(user.getNric());
-
+       if(!nric.equals(LogonNric)){
+            userService.deleteUser(nric);
             return response(NO_CONTENT, "User deleted successfully");
-       }else
-    {
+       }else{
            return response(CONFLICT, "Unable to delete your own account");
        }
-
-
-
-
     }
 
     private  ResponseEntity<HttpResponse> response(HttpStatus httpStatus, String message){

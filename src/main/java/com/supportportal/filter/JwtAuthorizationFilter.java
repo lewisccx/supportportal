@@ -5,6 +5,8 @@ import com.supportportal.utility.JWTTokenProvider;
 import static org.springframework.http.HttpHeaders.AUTHORIZATION;
 import static org.springframework.http.HttpStatus.OK;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -22,6 +24,9 @@ import static com.supportportal.constant.SecurityConstant.*;
 
 @Component
 public class JwtAuthorizationFilter extends OncePerRequestFilter {
+
+    private final Logger LOGGER = LoggerFactory.getLogger(getClass());
+
     private JWTTokenProvider jwtTokenProvider;
 
     public JwtAuthorizationFilter(JWTTokenProvider jwtTokenProvider) {
@@ -42,6 +47,7 @@ public class JwtAuthorizationFilter extends OncePerRequestFilter {
             String username = jwtTokenProvider.getSubject(token);
             if (jwtTokenProvider.isTokenValid(username, token) && SecurityContextHolder.getContext().getAuthentication() == null) {
                 List<GrantedAuthority> authorities = jwtTokenProvider.getAuthorities(token);
+                LOGGER.info("user authorities: " + authorities);
                 Authentication authentication = jwtTokenProvider.getAuthentication(username, authorities, request);
                 SecurityContextHolder.getContext().setAuthentication(authentication);
             } else {

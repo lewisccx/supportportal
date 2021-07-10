@@ -1,9 +1,7 @@
 package com.supportportal.domain;
 
-import lombok.AllArgsConstructor;
-import lombok.Data;
-import lombok.NoArgsConstructor;
-import lombok.ToString;
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import lombok.*;
 
 import javax.persistence.*;
 import java.util.HashSet;
@@ -25,11 +23,11 @@ public class Role
     @Column(nullable = false, unique = true, length = 20)
     private String role;
     @Column(nullable = false, length = 40)
-    private String Descr;
+    private String descr;
 
     public Role(String role, String descr) {
         this.role = role.toUpperCase();
-        this.Descr = descr.toUpperCase();
+        this.descr = descr.toUpperCase();
 
     }
 
@@ -40,6 +38,8 @@ public class Role
             joinColumns = @JoinColumn(name = "role_oid"),
             inverseJoinColumns = @JoinColumn(name = "permission_oid")
     )
+    //remove @JsonIgnore to display child object: Permission object
+    @JsonIgnore
     private Set<Permission> permissionSet = new HashSet<>();
 
     public void addPermission(Permission permission){

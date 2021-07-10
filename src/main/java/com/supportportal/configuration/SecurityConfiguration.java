@@ -1,5 +1,6 @@
 package com.supportportal.configuration;
 
+import com.google.common.collect.ImmutableList;
 import com.supportportal.filter.JwtAccessDeniedHandler;
 import com.supportportal.filter.JwtAuthenticationEntryPoint;
 import com.supportportal.filter.JwtAuthorizationFilter;
@@ -16,6 +17,14 @@ import org.springframework.security.config.annotation.web.configuration.WebSecur
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import org.springframework.web.cors.CorsConfiguration;
+import org.springframework.web.cors.CorsConfigurationSource;
+import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
+import org.springframework.web.filter.CorsFilter;
+
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 
 import static com.supportportal.constant.SecurityConstant.PUBLIC_URLS;
 import static org.springframework.security.config.http.SessionCreationPolicy.STATELESS;
@@ -51,9 +60,11 @@ public class SecurityConfiguration extends WebSecurityConfigurerAdapter {
 
     @Override
     protected void configure(HttpSecurity http) throws Exception {
-        http.csrf().disable().cors().and()
+        http.csrf().disable()
+                .cors().and()
                 .sessionManagement().sessionCreationPolicy(STATELESS)
-                .and().authorizeRequests().antMatchers(PUBLIC_URLS).permitAll()
+                .and().authorizeRequests()
+                .antMatchers(PUBLIC_URLS).permitAll()
                 .anyRequest().authenticated()
                 .and()
                 .exceptionHandling().accessDeniedHandler(jwtAccessDeniedHandler)
@@ -66,5 +77,66 @@ public class SecurityConfiguration extends WebSecurityConfigurerAdapter {
     @Override
     public AuthenticationManager authenticationManagerBean() throws Exception {
         return super.authenticationManagerBean();
+    }
+
+    @Bean
+    public CorsConfigurationSource corsConfigurationSource(){
+        final UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
+        final CorsConfiguration corsConfiguration = new CorsConfiguration();
+        corsConfiguration.setAllowCredentials(true);
+        corsConfiguration.setAllowedOrigins(ImmutableList.of("http://localhost:4200"));
+        corsConfiguration.setAllowedHeaders(headerList());
+        corsConfiguration.setExposedHeaders(exposedHeadersList());
+        corsConfiguration.setAllowedMethods(methodList());
+        source.registerCorsConfiguration("/**", corsConfiguration);
+        return source;
+    }
+
+    private List<String> urlList(){
+        String[] urlArr={"http://localhost:4200/**"};
+        List<String> urlList = new ArrayList<>();
+        Collections.addAll(urlList,urlArr);
+        return  urlList;
+    }
+
+    private List<String> headerList(){
+        String[] headerArr={"Origin",
+                "Access-Control-Allow-Origin",
+                "Content-Type",
+                "Accept",
+                "Jwt-Token",
+                "Authorization",
+                "Origin, Accept",
+                "X-Requested-With",
+                "Access-Control-Request-Method",
+                "Access-Control-Request-Headers"};
+        List<String> headerList = new ArrayList<>();
+        Collections.addAll(headerList,headerArr);
+        return  headerList;
+    }
+
+    private List<String> exposedHeadersList(){
+        String[] headerArr={"Origin",
+                "Content-Type",
+                "Accept",
+                "Jwt-Token",
+                "Authorization",
+                "Access-Control-Allow-Origin",
+                "Access-Control-Allow-Credentials"};
+        List<String> exposedHeadersList = new ArrayList<>();
+        Collections.addAll(exposedHeadersList,headerArr);
+        return  exposedHeadersList;
+    }
+
+    private List<String> methodList(){
+        String[] methodArr={"GET",
+                "POST",
+                "PUT",
+                "DELETE",
+                "OPTIONS",
+        };
+        List<String> methodList = new ArrayList<>();
+        Collections.addAll(methodList,methodArr);
+        return  methodList;
     }
 }

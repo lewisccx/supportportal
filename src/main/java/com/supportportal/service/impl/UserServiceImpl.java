@@ -5,6 +5,7 @@ import com.supportportal.domain.User;
 import com.supportportal.domain.UserPrincipal;
 import com.supportportal.exception.domain.EmailExistException;
 import com.supportportal.exception.domain.UsernameExistException;
+import com.supportportal.repository.RoleRepository;
 import com.supportportal.repository.UserRepository;
 import com.supportportal.service.LoginAttemptService;
 import com.supportportal.service.UserService;
@@ -21,9 +22,7 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import javax.transaction.Transactional;
-import java.util.Date;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 import java.util.concurrent.ExecutionException;
 
 import static com.supportportal.constant.UserImplConstant.*;
@@ -34,12 +33,14 @@ import static com.supportportal.constant.UserImplConstant.*;
 public class UserServiceImpl implements UserService, UserDetailsService {
     private final Logger LOGGER = LoggerFactory.getLogger(getClass());
     private final UserRepository userRepository;
+    private final RoleRepository roleRepository;
     private final BCryptPasswordEncoder passwordEncoder;
 
     private LoginAttemptService loginAttemptService;
     @Autowired
-    public UserServiceImpl(UserRepository userRepository, BCryptPasswordEncoder passwordEncoder,LoginAttemptService loginAttemptService) {
+    public UserServiceImpl(UserRepository userRepository,RoleRepository roleRepository, BCryptPasswordEncoder passwordEncoder,LoginAttemptService loginAttemptService) {
         this.userRepository = userRepository;
+        this.roleRepository = roleRepository;
         this.passwordEncoder = passwordEncoder;
         this.loginAttemptService = loginAttemptService;
     }
@@ -104,8 +105,8 @@ public class UserServiceImpl implements UserService, UserDetailsService {
     }
 
     @Override
-    public User updateUser(String nric, String name, String salutation, String userInitial, String email, String displayName, String appt, boolean locked, Set<Role> roleSet) {
-
+    public User updateUser(String nric, String name, String salutation, String userInitial, String email, String displayName, String appt, String[] roleSet) {
+             Set<Role> tempRoleSet = new HashSet<>();
             User user = findUserByNric(nric);
             user.setName(name);
             user.setSalutation(salutation);
@@ -113,8 +114,13 @@ public class UserServiceImpl implements UserService, UserDetailsService {
             user.setEmail(email);
             user.setDisplayName(displayName);
             user.setAppt(appt);
-            user.setRoleSet(roleSet);
-            user.setLocked(locked);
+            if(roleSet.length > 0){
+                for(String roleOid : roleSet){
+                    Optional<Role> role = roleRepository.findById(Integer.parseInt(roleOid));
+                    role.ifPresent(tempRoleSet::add);
+                }
+                user.setRoleSet(tempRoleSet);
+            }
             userRepository.save(user);
             return user;
     }
@@ -127,6 +133,11 @@ public class UserServiceImpl implements UserService, UserDetailsService {
            userRepository.deleteByNric(nric);
        }
 
+    }
+
+    @Override
+    public User submitNewUserAccessControl(String nric, String name, String salutation, String userInitial, String email, String displayName, String appt, String[] roleSet, String submittedBy) {
+        return null;
     }
 
 
