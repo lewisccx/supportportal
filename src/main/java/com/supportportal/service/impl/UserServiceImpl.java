@@ -15,6 +15,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
@@ -22,9 +25,10 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import javax.transaction.Transactional;
-import java.util.*;
-import java.util.concurrent.ExecutionException;
 
+import java.util.*;
+
+import org.springframework.data.domain.Pageable;
 import static com.supportportal.constant.UserImplConstant.*;
 
 @Service
@@ -74,7 +78,7 @@ public class UserServiceImpl implements UserService, UserDetailsService {
     }
 
     @Override
-    public User register(String nric, String name, String salutation, String userInitial, String email, String displayName, String appt, Set<Role> roleSet) throws UsernameExistException, EmailExistException {
+    public User register(String nric, String name, String salutation, String userInitial, String email, String displayName, String appt) throws UsernameExistException, EmailExistException {
         validateNricAndEmail(nric, email);
         User user = new User();
         String staffId = generateStaffId();
@@ -88,7 +92,6 @@ public class UserServiceImpl implements UserService, UserDetailsService {
         user.setUserInitial(userInitial);
         user.setDisplayName(displayName);
         user.setAppt(appt);
-        user.setRoleSet(roleSet);
         user.setLocked(false);
         userRepository.save(user);
         return user;
@@ -99,13 +102,36 @@ public class UserServiceImpl implements UserService, UserDetailsService {
         return userRepository.findUserByNric(nric);
     }
 
+
+
     @Override
-    public List<User> getUsers() {
-        return userRepository.findAll();
+    public Page<User> getAll(String filter, boolean sorted, Pageable pageable) {
+        if(!filter.isEmpty()){
+
+            Pageable requestedPage;
+            if(sorted){
+                requestedPage = PageRequest.of(pageable.getPageNumber(), pageable.getPageSize(), Sort.by(filter).descending());
+            }else{
+                requestedPage = PageRequest.of(pageable.getPageNumber(), pageable.getPageSize(), Sort.by(filter).ascending());
+            }
+            return userRepository.findAll(requestedPage);
+        }
+
+        return userRepository.findAll(pageable);
+    }
+    @Override
+    public Page<User> getAll( Pageable pageable) {
+        return userRepository.findAll(pageable);
     }
 
     @Override
-    public User updateUser(String nric, String name, String salutation, String userInitial, String email, String displayName, String appt, String[] roleSet) {
+    public Page<User> search(String query, Pageable pageable) {
+        return userRepository.findByNameOrDisplayNameOrEmailLike(query, pageable);
+    }
+
+
+    @Override
+    public User updateUser(String nric, String name, String salutation, String userInitial, String email, String displayName, String appt, Set<Role> roleSet) {
              Set<Role> tempRoleSet = new HashSet<>();
             User user = findUserByNric(nric);
             user.setName(name);
@@ -114,9 +140,9 @@ public class UserServiceImpl implements UserService, UserDetailsService {
             user.setEmail(email);
             user.setDisplayName(displayName);
             user.setAppt(appt);
-            if(roleSet.length > 0){
-                for(String roleOid : roleSet){
-                    Optional<Role> role = roleRepository.findById(Integer.parseInt(roleOid));
+            if(roleSet.size() > 0){
+                for(Role r : roleSet){
+                    Optional<Role> role = roleRepository.findById(r.getRoleOid());
                     role.ifPresent(tempRoleSet::add);
                 }
                 user.setRoleSet(tempRoleSet);
@@ -136,8 +162,18 @@ public class UserServiceImpl implements UserService, UserDetailsService {
     }
 
     @Override
+    public Boolean existsUserByNric(String nric) {
+        return userRepository.existsUserByNric(nric);
+    }
+
+    @Override
     public User submitNewUserAccessControl(String nric, String name, String salutation, String userInitial, String email, String displayName, String appt, String[] roleSet, String submittedBy) {
         return null;
+    }
+
+    @Override
+    public Boolean existsUserByEmail(String email) {
+        return userRepository.existsUserByEmail(email);
     }
 
 
